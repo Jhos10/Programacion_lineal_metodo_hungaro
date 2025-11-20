@@ -183,10 +183,6 @@ def max_dict(diccionario: dict) -> int:
 def ocultar_celdas(
     diccionario_fila_col: dict, matriz: list[X], fila: bool = False
 ) -> list[X]:
-    # print(f"ocultando fila:{fila}")
-    # print("diccionario usado para ocultar")
-    # pp(diccionario_fila_col)
-    # pp(matriz)
     if fila:
         for numero_posicion in diccionario_fila_col:
             for x in matriz:
@@ -326,12 +322,8 @@ def funcion_objetivo(matriz_original: list[X], coordenadas: list[tuple]) -> int:
     return resultado
 
 
-# pp(funcion_objetivo(matriz_original=matriz, coordenadas=coordenadas))
-
-
 def procesar_matriz(matriz_X: list[X]) -> list[X]:
-    # matriz_X = reduce(lambda x,y: x+y, matriz_X)
-    # print(matriz_X)
+
     valores_menores_fila = buscar_menor_fila(matriz=matriz_X)
 
     matriz_filas_restadas = restar_valor_menor(
