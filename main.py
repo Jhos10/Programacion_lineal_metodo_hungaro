@@ -1,4 +1,3 @@
-# SI tiene dos lineas ENTONCES se suma, SINO SI tiene una linea no se edita el valor, SINO se resta
 import streamlit as st
 import pandas as pd
 from pprint import pprint as pp
@@ -8,7 +7,6 @@ import pandas as pd
 from models import X
 
 
-# convertir dataframe a matriz de x
 def data_frame_a_lista(df):
     matriz = []
     for i in range(len(df)):
@@ -30,7 +28,6 @@ def lista_a_data_frame(matriz_X):
     n_filas = max(x.posicion[0] for x in matriz_X) + 1
     n_cols = max(x.posicion[1] for x in matriz_X) + 1
 
-    # Crear lista de listas vacía para el dataframe
     df_data = [[0 for _ in range(n_cols)] for _ in range(n_filas)]
     for x in matriz_X:
         df_data[x.posicion[0]][x.posicion[1]] = x.num
@@ -38,7 +35,6 @@ def lista_a_data_frame(matriz_X):
     return pd.DataFrame(df_data)
 
 
-# obtener matriz de estilos (sin Streamlit)
 def matriz_estilos_ocultos(matriz_X):
     if not matriz_X:
         return pd.DataFrame()
@@ -155,9 +151,32 @@ def cantidad_ceros_fil_col(matriz: list[X]) -> dict:
     return lineas_filas, lineas_columnas, cantidad_ceros_total
 
 
-# tupla_lineas = cantidad_ceros_fil_col(matriz= matriz_columnas_restadas)
-# print("numero de ceros")
-# pp(tupla_lineas)
+def cantidad_ceros_no_asig_fil_col(matriz: list[X]) -> dict:
+    lineas_filas = dict()
+    lineas_columnas = dict()
+    tamano_matriz = int(len(matriz) ** (1 / 2))
+    # se construye un diccionario donde se guarda cuantos ceros tiene cada linea
+    for i in range(tamano_matriz):
+        lineas_filas[i] = 0
+        lineas_columnas[i] = 0
+
+    contador_fila = 0
+    for x in matriz:
+        if x.posicion[0] != contador_fila:
+            contador_fila += 1
+        if x.posicion[0] == contador_fila and x.num == 0 and x.asignado == False:
+            lineas_filas[contador_fila] += 1
+
+    for i in range(tamano_matriz):
+        for x in matriz:
+            if x.posicion[1] == i and x.num == 0 and x.asignado == False:
+                lineas_columnas[i] += 1
+
+    cantidad_ceros_total = reduce(
+        lambda x, y: x + y, list(map(lambda x: lineas_columnas[x], lineas_columnas))
+    )
+    return lineas_filas, lineas_columnas, cantidad_ceros_total
+
 
 # 1. Contar la cantidad de ceros en cada fila, cade columna y el total de la matriz
 # 2. Contador de ceros
@@ -198,31 +217,6 @@ def ocultar_celdas(
     return matriz
 
 
-# def dibujar_lineas(matriz: list[X], tupla:tuple) -> list[X]:
-#   contador_ceros = 0
-#   diccionario_fila = tupla[0]
-#   diccionario_col = tupla[1]
-#   cantidad_ceros_totales = tupla[2]
-#   while contador_ceros <= cantidad_ceros_totales:
-#     valor_maximo_fila = max_dict(diccionario_fila)
-#     valor_maximo_col = max_dict(diccionario_col)
-
-#     # pp(contador_ceros)
-#     if  valor_maximo_fila >= valor_maximo_col:
-#       diccionario_fila_ocultar = dict(filter(lambda x: x[1]== valor_maximo_fila, diccionario_fila.items()))
-#       matriz = ocultar_celdas(diccionario_fila_col=diccionario_fila_ocultar,matriz=matriz, fila=True)
-#       contador_ceros += valor_maximo_fila*len(diccionario_fila_ocultar)
-#     else:
-#       diccionario_col_ocultar = dict(filter(lambda x: x[1]== valor_maximo_col, diccionario_col.items()))
-#       matriz = ocultar_celdas(diccionario_fila_col=diccionario_col_ocultar,matriz=matriz)
-#       contador_ceros += valor_maximo_col*len(diccionario_col_ocultar)
-
-#     diccionario_fila = cantidad_ceros_fil_col(matriz=matriz)[0]
-#     diccionario_col = cantidad_ceros_fil_col(matriz=matriz)[1]
-
-#   return matriz
-
-
 def dibujar_lineas(matriz: list[X], tupla: tuple) -> list[X]:
     contador_ceros = 0
     diccionario_fila = tupla[0]
@@ -238,9 +232,6 @@ def dibujar_lineas(matriz: list[X], tupla: tuple) -> list[X]:
                 filter(lambda x: x[1] == valor_maximo_fila, diccionario_fila.items())
             )
 
-            # diccionario_fila_ocultar = {
-            #     k: v for k, v in diccionario_fila.items() if v == valor_maximo_fila
-            # }
             matriz = ocultar_celdas(
                 diccionario_fila_col=diccionario_fila_ocultar, matriz=matriz, fila=True
             )
@@ -249,9 +240,7 @@ def dibujar_lineas(matriz: list[X], tupla: tuple) -> list[X]:
             diccionario_col_ocultar = dict(
                 filter(lambda x: x[1] == valor_maximo_col, diccionario_col.items())
             )
-            # diccionario_col_ocultar = {
-            #     k: v for k, v in diccionario_col.items() if v == valor_maximo_col
-            # }
+
             matriz = ocultar_celdas(
                 diccionario_fila_col=diccionario_col_ocultar, matriz=matriz, fila=False
             )
@@ -262,29 +251,63 @@ def dibujar_lineas(matriz: list[X], tupla: tuple) -> list[X]:
     return matriz
 
 
-def terminado_o_no(matriz: list[X]) -> bool:
-    print("Comprobando si terminamos el problema o NO!")
-    lista_columnas_asignadas = []
-    lista_filas_asignadas = []
+def terminado_o_no_v3(matriz: list[X]) -> bool | list[tuple[int, int]]:
+
+    lista_columnas_asignadas = set()
+    lista_filas_asignadas = set()
     lista_asignaciones = []
-    contador_empresa = 0
 
     for x in matriz:
         x.asignado = False
 
-    for x in matriz:
-        if (
-            x.num == 0
-            and x.posicion[1] not in lista_columnas_asignadas
-            and x.posicion[0] not in lista_filas_asignadas
-        ):
-            x.asignado = True
-            contador_empresa += 1
-            lista_columnas_asignadas.append(x.posicion[1])
-            lista_filas_asignadas.append(x.posicion[0])
-            lista_asignaciones.append(x.posicion)
+    tamano = int(len(matriz) ** 0.5)
 
-    return False if contador_empresa < len(matriz) ** (1 / 2) else lista_asignaciones
+    while True:
+        asignacion_realizada = False
+
+        for fila in range(tamano):
+            if fila in lista_filas_asignadas:
+                continue
+            ceros_fila = [
+                x
+                for x in matriz
+                if x.posicion[0] == fila
+                and x.num == 0
+                and x.posicion[1] not in lista_columnas_asignadas
+            ]
+            if len(ceros_fila) == 1:
+                x = ceros_fila[0]
+                x.asignado = True
+                lista_asignaciones.append(x.posicion)
+                lista_filas_asignadas.add(x.posicion[0])
+                lista_columnas_asignadas.add(x.posicion[1])
+                asignacion_realizada = True
+
+        for col in range(tamano):
+            if col in lista_columnas_asignadas:
+                continue
+            ceros_col = [
+                x
+                for x in matriz
+                if x.posicion[1] == col
+                and x.num == 0
+                and x.posicion[0] not in lista_filas_asignadas
+            ]
+            if len(ceros_col) == 1:
+                x = ceros_col[0]
+                x.asignado = True
+                lista_asignaciones.append(x.posicion)
+                lista_filas_asignadas.add(x.posicion[0])
+                lista_columnas_asignadas.add(x.posicion[1])
+                asignacion_realizada = True
+
+        if not asignacion_realizada:
+            break
+
+    if len(lista_filas_asignadas) == tamano and len(lista_columnas_asignadas) == tamano:
+        return lista_asignaciones
+    else:
+        return False
 
 
 def encontrar_menor_no_marcado(matriz: list[X]):
@@ -322,6 +345,15 @@ def funcion_objetivo(matriz_original: list[X], coordenadas: list[tuple]) -> int:
     return resultado
 
 
+def limpiar_matriz(matriz: list[X]) -> list[X]:
+    for x in matriz:
+        x.oculto = False
+        x.marcado = 0
+        x.asignado = False
+
+    return matriz
+
+
 def procesar_matriz(matriz_X: list[X]) -> list[X]:
 
     valores_menores_fila = buscar_menor_fila(matriz=matriz_X)
@@ -347,8 +379,10 @@ def procesar_matriz(matriz_X: list[X]) -> list[X]:
         matriz=dibujar, valor_menor=valor_menor
     )
 
-    terminado = terminado_o_no(matriz=matriz_restada)
-    print(terminado)
+    terminado = terminado_o_no_v3(matriz=matriz_restada)
+    # terminado = terminado_o_no(matriz=matriz_restada)
+
+    # dibujar = dibujar_lineas(matriz=matriz_restada, tupla=n_ceros_col_fil)
     while not terminado:
         n_ceros_col_fil = cantidad_ceros_fil_col(matriz_restada)
         dibujar = dibujar_lineas(matriz=matriz_restada, tupla=n_ceros_col_fil)
@@ -356,10 +390,12 @@ def procesar_matriz(matriz_X: list[X]) -> list[X]:
         matriz_restada = restar_valores_no_marcados_y_sumar_los_marcados(
             matriz=dibujar, valor_menor=valor_menor
         )
-        terminado = terminado_o_no(matriz=matriz_restada)
+        terminado = terminado_o_no_v3(matriz=matriz_restada)
+        # terminado = terminado_o_no(matriz=matriz_restada)
 
     resultado = funcion_objetivo(matriz_original=matriz_X, coordenadas=terminado)
 
-    # return dibujar, resultado
+    return dibujar, resultado
 
-    return dibujar, {}
+
+# # #     # return dibujar, {}
