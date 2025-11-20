@@ -32,7 +32,6 @@ def lista_a_data_frame(matriz_X):
 
     # Crear lista de listas vacía para el dataframe
     df_data = [[0 for _ in range(n_cols)] for _ in range(n_filas)]
-
     for x in matriz_X:
         df_data[x.posicion[0]][x.posicion[1]] = x.num
 
@@ -53,6 +52,25 @@ def matriz_estilos_ocultos(matriz_X):
         if x.oculto:
             estilos.iloc[x.posicion[0], x.posicion[1]] = (
                 "background-color: red; color: white;"
+            )
+
+    return estilos
+
+
+# asignamos color verde a las celdas que forman parte de ciertas coordenadas
+def matriz_estilos_resultado(matriz_X, coordenadas: list[tuple[int, int]]):
+    if not matriz_X:
+        return pd.DataFrame()
+
+    n_filas = max(x.posicion[0] for x in matriz_X) + 1
+    n_cols = max(x.posicion[1] for x in matriz_X) + 1
+
+    estilos = pd.DataFrame([["" for _ in range(n_cols)] for _ in range(n_filas)])
+
+    for x in matriz_X:
+        if x.posicion in coordenadas:
+            estilos.iloc[x.posicion[0], x.posicion[1]] = (
+                "background-color: green; color: white;"
             )
 
     return estilos
@@ -220,53 +238,32 @@ def dibujar_lineas(matriz: list[X], tupla: tuple) -> list[X]:
         valor_maximo_col = max_dict(diccionario_col)
 
         if valor_maximo_fila >= valor_maximo_col:
-            diccionario_fila_ocultar = {
-                k: v for k, v in diccionario_fila.items() if v == valor_maximo_fila
-            }
+            diccionario_fila_ocultar = dict(
+                filter(lambda x: x[1] == valor_maximo_fila, diccionario_fila.items())
+            )
+
+            # diccionario_fila_ocultar = {
+            #     k: v for k, v in diccionario_fila.items() if v == valor_maximo_fila
+            # }
             matriz = ocultar_celdas(
                 diccionario_fila_col=diccionario_fila_ocultar, matriz=matriz, fila=True
             )
             contador_ceros += valor_maximo_fila * len(diccionario_fila_ocultar)
         else:
-            diccionario_col_ocultar = {
-                k: v for k, v in diccionario_col.items() if v == valor_maximo_col
-            }
+            diccionario_col_ocultar = dict(
+                filter(lambda x: x[1] == valor_maximo_col, diccionario_col.items())
+            )
+            # diccionario_col_ocultar = {
+            #     k: v for k, v in diccionario_col.items() if v == valor_maximo_col
+            # }
             matriz = ocultar_celdas(
                 diccionario_fila_col=diccionario_col_ocultar, matriz=matriz, fila=False
             )
             contador_ceros += valor_maximo_col * len(diccionario_col_ocultar)
 
-        # 🔹 Recalcular diccionarios después de cada iteración
         diccionario_fila, diccionario_col, _ = cantidad_ceros_fil_col(matriz)
 
     return matriz
-
-
-# def dibujar_lineas(matriz: list[X], tupla:tuple) -> list[X]:
-#     contador_ceros = 0
-#     diccionario_fila = tupla[0]
-#     diccionario_col = tupla[1]
-#     cantidad_ceros_total = tupla[2]
-
-#     while contador_ceros < cantidad_ceros_total:
-#         valor_maximo_fila = max_dict(diccionario_fila)
-#         valor_maximo_col = max_dict(diccionario_col)
-
-#         if valor_maximo_fila >= valor_maximo_col:
-#             diccionario_fila_ocultar = dict(filter(lambda x: x[1]== valor_maximo_fila, diccionario_fila.items()))
-#             matriz = ocultar_celdas(diccionario_fila_col=diccionario_fila_ocultar, matriz=matriz, fila=True)
-#             contador_ceros += valor_maximo_fila * len(diccionario_fila_ocultar)
-#         else:
-#             diccionario_col_ocultar = dict(filter(lambda x: x[1]== valor_maximo_col, diccionario_col.items()))
-#             matriz = ocultar_celdas(diccionario_fila_col=diccionario_col_ocultar, matriz=matriz, fila=False)
-#             contador_ceros += valor_maximo_col * len(diccionario_col_ocultar)
-
-#         # 🔹 Recalcular diccionarios después de cada iteración
-#         diccionario_fila = cantidad_ceros_fil_col(matriz)[0]
-#         diccionario_col = cantidad_ceros_fil_col(matriz)[1]
-#         # diccionario_fila, diccionario_col = cantidad_ceros_fil_col(matriz)
-
-#     return matriz
 
 
 def terminado_o_no(matriz: list[X]) -> bool:
@@ -275,6 +272,10 @@ def terminado_o_no(matriz: list[X]) -> bool:
     lista_filas_asignadas = []
     lista_asignaciones = []
     contador_empresa = 0
+
+    for x in matriz:
+        x.asignado = False
+
     for x in matriz:
         if (
             x.num == 0
@@ -286,20 +287,8 @@ def terminado_o_no(matriz: list[X]) -> bool:
             lista_columnas_asignadas.append(x.posicion[1])
             lista_filas_asignadas.append(x.posicion[0])
             lista_asignaciones.append(x.posicion)
-    # print(lista_columnas_asignadas)
-    # print(lista_asignaciones)
-    return (
-        False
-        if contador_empresa < len(matriz) ** (1 / 2)
-        or contador_empresa > len(matriz) ** (1 / 2)
-        else lista_asignaciones
-    )
 
-
-# Buscar maquina con una unica posibilidad del cero, que asigne todas las que tienen una posibilidad
-#
-# Marcar filas y columnas con la mayor cantidad de ceros
-# Despues seguir con las menores
+    return False if contador_empresa < len(matriz) ** (1 / 2) else lista_asignaciones
 
 
 def encontrar_menor_no_marcado(matriz: list[X]):
@@ -308,9 +297,6 @@ def encontrar_menor_no_marcado(matriz: list[X]):
         if x.marcado == 0:
             lista_aux.append(x.num)
     return min(lista_aux)
-
-
-# valor_menor = encontrar_menor_no_marcado(matriz=matriz_marcada)
 
 
 def restar_valores_no_marcados_y_sumar_los_marcados(
@@ -336,6 +322,7 @@ def funcion_objetivo(matriz_original: list[X], coordenadas: list[tuple]) -> int:
     resultado["valor_objetivo"] = reduce(
         lambda x, y: x + y, list(map(lambda x: x[1], resultado.items()))
     )
+    resultado["coordenadas"] = coordenadas
     return resultado
 
 
@@ -348,7 +335,9 @@ def procesar_matriz(matriz_X: list[X]) -> list[X]:
     valores_menores_fila = buscar_menor_fila(matriz=matriz_X)
 
     matriz_filas_restadas = restar_valor_menor(
-        matriz=matriz_X, valores_menores=valores_menores_fila, fila=True
+        matriz=matriz_X,
+        valores_menores=valores_menores_fila,
+        fila=True,
     )
     valores_menores_columna = buscar_menor_columna(matriz=matriz_filas_restadas)
     matriz_columnas_restadas = restar_valor_menor(
@@ -357,9 +346,28 @@ def procesar_matriz(matriz_X: list[X]) -> list[X]:
     )
 
     n_ceros_col_fil = cantidad_ceros_fil_col(matriz_columnas_restadas)
-    # pp(n_ceros_col_fil)
 
     dibujar = dibujar_lineas(matriz=matriz_columnas_restadas, tupla=n_ceros_col_fil)
-    # pp(dibujar)
 
-    return dibujar
+    valor_menor = encontrar_menor_no_marcado(matriz=dibujar)
+
+    matriz_restada = restar_valores_no_marcados_y_sumar_los_marcados(
+        matriz=dibujar, valor_menor=valor_menor
+    )
+
+    terminado = terminado_o_no(matriz=matriz_restada)
+    print(terminado)
+    while not terminado:
+        n_ceros_col_fil = cantidad_ceros_fil_col(matriz_restada)
+        dibujar = dibujar_lineas(matriz=matriz_restada, tupla=n_ceros_col_fil)
+        valor_menor = encontrar_menor_no_marcado(matriz=dibujar)
+        matriz_restada = restar_valores_no_marcados_y_sumar_los_marcados(
+            matriz=dibujar, valor_menor=valor_menor
+        )
+        terminado = terminado_o_no(matriz=matriz_restada)
+
+    resultado = funcion_objetivo(matriz_original=matriz_X, coordenadas=terminado)
+
+    # return dibujar, resultado
+
+    return dibujar, {}
